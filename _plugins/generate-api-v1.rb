@@ -63,7 +63,7 @@ module ApiV1
 
     def add_index_page(site)
       site_url = site.config['url']
-      site.pages << JsonPage.new(site, '/', 'index', [
+      site.pages << JsonPage.new(site, '/', [
         { name: "products", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/products/" },
         { name: "categories", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/categories/" },
         { name: "tags", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/tags/" },
@@ -89,7 +89,7 @@ module ApiV1
     end
 
     def add_all_products_page(site, products)
-      site.pages << ProductsJsonPage.new(site, '/products/', 'index', products)
+      site.pages << ProductsJsonPage.new(site, '/products/', products)
     end
 
     def add_category_pages(site, products)
@@ -101,13 +101,13 @@ module ApiV1
       end
 
       pages_by_category.each do |category, products|
-        site.pages << ProductsJsonPage.new(site, "/categories/#{category}", 'index', products)
+        site.pages << ProductsJsonPage.new(site, "/categories/#{category}", products)
       end
     end
 
     def add_all_categories_page(site, products)
       all_categories = products.map { |product| product.data['category'] }.uniq.sort
-      site.pages << JsonPage.new(site, '/categories/', 'index',
+      site.pages << JsonPage.new(site, '/categories/',
         all_categories.map { |category| {
           name: category,
           uri: "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/categories/#{category}/"
@@ -123,13 +123,13 @@ module ApiV1
       end
 
       products_by_tag.each do |tag, products|
-        site.pages << ProductsJsonPage.new(site, "/tags/#{tag}", 'index', products)
+        site.pages << ProductsJsonPage.new(site, "/tags/#{tag}", products)
       end
     end
 
     def add_all_tags_page(site, products)
       all_tags = products.flat_map { |product| product.data['tags'] }.uniq.sort
-      site.pages << JsonPage.new(site, '/tags/', 'index',
+      site.pages << JsonPage.new(site, '/tags/',
         all_tags.map { |tag| {
           name: tag,
           uri: "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/tags/#{tag}/"
@@ -147,11 +147,11 @@ module ApiV1
   end
 
   class JsonPage < Jekyll::Page
-    def initialize(site, path, name, data, metadata = {})
+    def initialize(site, path, data, metadata = {})
       @site = site
       @base = site.source
       @dir = "api/v#{ApiV1::MAJOR_VERSION}#{path}"
-      @name = "#{name}.json"
+      @name = "index.json"
       @data = {}
       @data['layout'] = 'json'
       @data['data'] = metadata
@@ -160,81 +160,30 @@ module ApiV1
 
       self.process(@name)
     end
-  end
 
-  class ProductsJsonPage < JsonPage
-    def initialize(site, path, name, products)
-      super(site, path, name,
-        products.map { |product| {
-          name: product.data['id'],
-          label: product.data['title'],
-          category: product.data['category'],
-          tags: product.data['tags'],
-          identifiers: product.data['identifiers']
-            .map { |identifier| {
-              type: identifier.keys.first,
-              id: identifier.values.first
-            }
-          },
-          uri: "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/products/#{product.data['id']}/",
-        }
-      }, {
-        total: products.size()
-      })
+    protected
+
+    def product_url(site, product)
+      "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/products/#{product.data['id']}/"
     end
-  end
 
-  class ProductJsonPage < JsonPage
-    def initialize(site, product)
-      id = product.data['id']
-      super(site, "/products/#{id}", 'index', {
-        name: id,
-        label: product.data['title'],
-        category: product.data['category'],
-        tags: product.data['tags'],
-        identifiers: product.data['identifiers']
-          .map { |identifier| {
-            type: identifier.keys.first,
-            id: identifier.values.first
-          }
-        },
-        links: {
-          icon: product.data['iconUrl'],
-          html: "#{site.config['url']}/#{id}",
-          releasePolicy: product.data['releasePolicyLink'],
-        },
-        versionCommand: product.data['versionCommand'],
-        cycles: product.data['releases']
-          .map { |cycle| {
-            name: cycle['releaseCycle'],
-            codename: cycle['codename'],
-            label: ApiV1.strip_html(cycle['label']),
-            date: cycle['releaseDate'],
-            support: cycle['support'],
-            lts: cycle['lts'],
-            eol: cycle['eol'],
-            discontinued: cycle['discontinued'],
-            extendedSupport: cycle['extendedSupport'],
-            latest: {
-              name: cycle['latest'],
-              date: cycle['latestReleaseDate'],
-              link: cycle['link'],
-            }
-          }
-        }
-      }, {
-        # https://github.com/gjtorikian/jekyll-last-modified-at/blob/master/lib/jekyll-last-modified-at/determinator.rb
-        last_modified: product.data['last_modified_at'].last_modified_at_time.iso8601,
-        auto: product.data.has_key?('auto'),
-      })
+    def identifiers_to_json(product)
+      product.data['identifiers'].map { |identifier| {
+        type: identifier.keys.first,
+        id: identifier.values.first
+      } }
     end
-  end
 
-  class ProductCycleJsonPage < JsonPage
-    def initialize(site, product, cycle, identifier = nil)
-      name = identifier ? identifier : cycle['id']
+    def links_to_json(site, product)
+      {
+        icon: product.data['iconUrl'],
+        html: "#{site.config['url']}/#{product.data['id']}",
+        releasePolicy: product.data['releasePolicyLink'],
+      }
+    end
 
-      super(site, "/products/#{product.data['id']}/cycles/#{name}", 'index', {
+    def cycle_to_json(cycle)
+      {
         name: cycle['releaseCycle'],
         codename: cycle['codename'],
         label: ApiV1.strip_html(cycle['label']),
@@ -245,11 +194,65 @@ module ApiV1
         discontinued: cycle['discontinued'],
         extendedSupport: cycle['extendedSupport'],
         latest: {
-          version: cycle['latest'],
+          name: cycle['latest'],
           date: cycle['latestReleaseDate'],
           link: cycle['link'],
         }
-      })
+      }
+    end
+
+    def product_summary_to_json(site, product)
+      {
+        name: product.data['id'],
+        label: product.data['title'],
+        category: product.data['category'],
+        tags: product.data['tags'],
+        identifiers: identifiers_to_json(product),
+        uri: product_url(site, product)
+      }
+    end
+
+    def product_to_json(site, product)
+      {
+        name: product.data['id'],
+        label: product.data['title'],
+        category: product.data['category'],
+        tags: product.data['tags'],
+        identifiers: identifiers_to_json(product),
+        links: links_to_json(site, product),
+        versionCommand: product.data['versionCommand'],
+        cycles: product.data['releases'].map { |cycle| cycle_to_json(cycle) }
+      }
+    end
+  end
+
+  class ProductsJsonPage < JsonPage
+    def initialize(site, path, products)
+      data = products.map { |product| product_summary_to_json(site, product) }
+      meta = { total: products.size() }
+      super(site, path, data, meta)
+    end
+  end
+
+  class ProductJsonPage < JsonPage
+    def initialize(site, product)
+      path = "/products/#{product.data['id']}"
+      data = product_to_json(site, product)
+      meta = {
+        # https://github.com/gjtorikian/jekyll-last-modified-at/blob/master/lib/jekyll-last-modified-at/determinator.rb
+        last_modified: product.data['last_modified_at'].last_modified_at_time.iso8601,
+        auto: product.data.has_key?('auto'),
+      }
+      super(site, path, data, meta)
+    end
+  end
+
+  class ProductCycleJsonPage < JsonPage
+    def initialize(site, product, cycle, identifier = nil)
+      name = identifier ? identifier : cycle['id']
+      path = "/products/#{product.data['id']}/cycles/#{name}"
+      data = cycle_to_json(cycle)
+      super(site, path, data)
     end
   end
 end
