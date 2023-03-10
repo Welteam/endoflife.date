@@ -56,9 +56,11 @@ module ApiV1
       start = Time.now
       Jekyll.logger.info TOPIC, "Generating..."
 
+      product_pages = site.pages.select { |page| page.data['layout'] == 'product' }
+
       add_index_page(site)
-      product_pages = add_product_pages(site)
       add_all_products_page(site, product_pages)
+      product_pages.each { |page| add_product_page(site, page) }
 
       add_all_categories_page(site, product_pages)
       add_category_pages(site, product_pages)
@@ -76,19 +78,6 @@ module ApiV1
         { name: "categories", uri: "#{ApiV1.api_url(site, '/categories/')}" },
         { name: "tags", uri: "#{ApiV1.api_url(site, '/tags/')}" },
       ])
-    end
-
-    def add_product_pages(site)
-      product_pages = []
-
-      site.pages.each do |page|
-        if page.data['layout'] == 'product'
-          product_pages << page
-          add_product_page(site, page)
-        end
-      end
-
-      return product_pages
     end
 
     def add_product_page(site, page)
