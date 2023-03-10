@@ -37,6 +37,14 @@ module ApiV1
     result
   end
 
+  def self.site_url(site, path)
+    "#{site.config['url']}#{path}"
+  end
+  
+  def self.api_url(site, path)
+    site_url(site, "/api/v#{ApiV1::MAJOR_VERSION}#{path}")
+  end
+
   class ApiGenerator < Jekyll::Generator
     safe true
     priority :lowest
@@ -62,11 +70,10 @@ module ApiV1
     private
 
     def add_index_page(site)
-      site_url = site.config['url']
       site.pages << JsonPage.new(site, '/', [
-        { name: "products", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/products/" },
-        { name: "categories", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/categories/" },
-        { name: "tags", uri: "#{site_url}/api/v#{ApiV1::MAJOR_VERSION}/tags/" },
+        { name: "products", uri: "#{ApiV1.api_url(site, '/products/')}" },
+        { name: "categories", uri: "#{ApiV1.api_url(site, '/categories/')}" },
+        { name: "tags", uri: "#{ApiV1.api_url(site, '/tags/')}" },
       ])
     end
 
@@ -110,7 +117,7 @@ module ApiV1
       site.pages << JsonPage.new(site, '/categories/',
         all_categories.map { |category| {
           name: category,
-          uri: "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/categories/#{category}/"
+          uri: "#{ApiV1.api_url(site, "/categories/#{category}/")}"
         }}
       )
     end
@@ -132,7 +139,7 @@ module ApiV1
       site.pages << JsonPage.new(site, '/tags/',
         all_tags.map { |tag| {
           name: tag,
-          uri: "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/tags/#{tag}/"
+          uri: "#{ApiV1.api_url(site, "/tags/#{tag}/")}"
         }}
       )
     end
@@ -163,10 +170,6 @@ module ApiV1
 
     protected
 
-    def product_url(site, product)
-      "#{site.config['url']}/api/v#{ApiV1::MAJOR_VERSION}/products/#{product.data['id']}/"
-    end
-
     def identifiers_to_json(product)
       product.data['identifiers'].map { |identifier| {
         type: identifier.keys.first,
@@ -177,7 +180,7 @@ module ApiV1
     def links_to_json(site, product)
       {
         icon: product.data['iconUrl'],
-        html: "#{site.config['url']}/#{product.data['id']}",
+        html: ApiV1.site_url(site, "/#{product.data['id']}"),
         releasePolicy: product.data['releasePolicyLink'],
       }
     end
@@ -208,7 +211,7 @@ module ApiV1
         category: product.data['category'],
         tags: product.data['tags'],
         identifiers: identifiers_to_json(product),
-        uri: product_url(site, product)
+        uri: ApiV1.api_url(site, "/products/#{product.data['id']}/")
       }
     end
 
