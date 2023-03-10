@@ -40,7 +40,7 @@ module ApiV1
   def self.site_url(site, path)
     "#{site.config['url']}#{path}"
   end
-  
+
   def self.api_url(site, path)
     site_url(site, "/api/v#{ApiV1::MAJOR_VERSION}#{path}")
   end
@@ -83,16 +83,20 @@ module ApiV1
       site.pages.each do |page|
         if page.data['layout'] == 'product'
           product_pages << page
-          site.pages << ProductJsonPage.new(site, page)
-
-          site.pages << ProductCycleJsonPage.new(site, page, page.data['releases'][0], 'latest')
-          page.data['releases'].each do |cycle|
-            site.pages << ProductCycleJsonPage.new(site, page, cycle)
-          end
+          add_product_page(site, page)
         end
       end
 
       return product_pages
+    end
+
+    def add_product_pages(site, page)
+      site.pages << ProductJsonPage.new(site, page)
+
+      site.pages << ProductCycleJsonPage.new(site, page, page.data['releases'][0], 'latest')
+      page.data['releases'].each do |cycle|
+        site.pages << ProductCycleJsonPage.new(site, page, cycle)
+      end
     end
 
     def add_all_products_page(site, products)
