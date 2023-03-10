@@ -59,10 +59,10 @@ module ApiV1
       product_pages = add_product_pages(site)
       add_all_products_page(site, product_pages)
 
-      add_category_pages(site, product_pages)
       add_all_categories_page(site, product_pages)
-      add_tag_pages(site, product_pages)
+      add_category_pages(site, product_pages)
       add_all_tags_page(site, product_pages)
+      add_tag_pages(site, product_pages)
 
       Jekyll.logger.info TOPIC, "Generation done."
     end
@@ -117,13 +117,15 @@ module ApiV1
     end
 
     def add_all_categories_page(site, products)
-      all_categories = products.map { |product| product.data['category'] }.uniq.sort
-      site.pages << JsonPage.new(site, '/categories/',
-        all_categories.map { |category| {
-          name: category,
-          uri: "#{ApiV1.api_url(site, "/categories/#{category}/")}"
-        }}
-      )
+      categories = products.map { |product| product.data['category'] }.uniq.sort
+
+      data = categories.map { |category| {
+        name: category,
+        uri: "#{ApiV1.api_url(site, "/categories/#{category}/")}"
+      }}
+      meta = { total: categories.size() }
+
+      site.pages << JsonPage.new(site, '/categories/', data, meta)
     end
 
     def add_tag_pages(site, products)
@@ -139,13 +141,15 @@ module ApiV1
     end
 
     def add_all_tags_page(site, products)
-      all_tags = products.flat_map { |product| product.data['tags'] }.uniq.sort
-      site.pages << JsonPage.new(site, '/tags/',
-        all_tags.map { |tag| {
-          name: tag,
-          uri: "#{ApiV1.api_url(site, "/tags/#{tag}/")}"
-        }}
-      )
+      tags = products.flat_map { |product| product.data['tags'] }.uniq.sort
+
+      data = tags.map { |tag| {
+        name: tag,
+        uri: "#{ApiV1.api_url(site, "/tags/#{tag}/")}"
+      }}
+      meta = { total: tags.size() }
+
+      site.pages << JsonPage.new(site, '/tags/', data, meta)
     end
 
     def add_to_map(map, key, page)

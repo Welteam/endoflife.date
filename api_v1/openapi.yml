@@ -397,6 +397,11 @@ components:
           type: string
           description: Version of this schema.
           example: 1.0.0
+        total:
+          type: integer
+          format: int32
+          description: Number of uri in the list.
+          example: 1
         result:
           type: array
           items:
