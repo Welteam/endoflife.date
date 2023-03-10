@@ -53,6 +53,7 @@ module ApiV1
 
     def generate(site)
       @site = site
+      start = Time.now
       Jekyll.logger.info TOPIC, "Generating..."
 
       add_index_page(site)
@@ -64,7 +65,7 @@ module ApiV1
       add_all_tags_page(site, product_pages)
       add_tag_pages(site, product_pages)
 
-      Jekyll.logger.info TOPIC, "Generation done."
+      Jekyll.logger.info TOPIC, "Done in #{(Time.now - start).round(3)} seconds."
     end
 
     private
