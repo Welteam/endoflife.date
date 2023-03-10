@@ -90,7 +90,7 @@ module ApiV1
       return product_pages
     end
 
-    def add_product_pages(site, page)
+    def add_product_page(site, page)
       site.pages << ProductJsonPage.new(site, page)
 
       site.pages << ProductCycleJsonPage.new(site, page, page.data['releases'][0], 'latest')
@@ -174,13 +174,6 @@ module ApiV1
 
     protected
 
-    def identifiers_to_json(product)
-      product.data['identifiers'].map { |identifier| {
-        type: identifier.keys.first,
-        id: identifier.values.first
-      } }
-    end
-
     def links_to_json(site, product)
       {
         icon: product.data['iconUrl'],
@@ -214,22 +207,22 @@ module ApiV1
         label: product.data['title'],
         category: product.data['category'],
         tags: product.data['tags'],
-        identifiers: identifiers_to_json(product),
+        identifiers: product.data['identifiers'].map { |identifier| {
+          type: identifier.keys.first,
+          id: identifier.values.first
+        } },
         uri: ApiV1.api_url(site, "/products/#{product.data['id']}/")
       }
     end
 
     def product_to_json(site, product)
-      {
-        name: product.data['id'],
-        label: product.data['title'],
-        category: product.data['category'],
-        tags: product.data['tags'],
-        identifiers: identifiers_to_json(product),
-        links: links_to_json(site, product),
-        versionCommand: product.data['versionCommand'],
-        cycles: product.data['releases'].map { |cycle| cycle_to_json(cycle) }
-      }
+      product_summary_to_json(site, product)
+        .except(:uri)
+        .merge({
+                 links: links_to_json(site, product),
+                 versionCommand: product.data['versionCommand'],
+                 cycles: product.data['releases'].map { |cycle| cycle_to_json(cycle) }
+               })
     end
   end
 
