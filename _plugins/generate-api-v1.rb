@@ -17,7 +17,7 @@ require 'jekyll'
 
 module ApiV1
 
-  VERSION = '1.0.0-b1'
+  VERSION = '1.0.0'
   MAJOR_VERSION = VERSION.split('.')[0]
 
   STRIP_HTML_BLOCKS = Regexp.union(
@@ -61,9 +61,9 @@ module ApiV1
 
       add_category_pages(site, product_pages)
       add_all_categories_page(site, product_pages)
-
       add_tag_pages(site, product_pages)
       add_all_tags_page(site, product_pages)
+
       Jekyll.logger.info TOPIC, "Generation done."
     end
 
