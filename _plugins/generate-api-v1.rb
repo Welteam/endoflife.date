@@ -84,9 +84,11 @@ module ApiV1
       site.pages << ProductJsonPage.new(site, page)
 
       site.pages << ProductCycleJsonPage.new(site, page, page.data['releases'][0], 'latest')
-      page.data['releases'].each do |cycle|
-        site.pages << ProductCycleJsonPage.new(site, page, cycle)
-      end
+      page.data['releases'].each { |cycle| add_cycle_page(site, page, cycle) }
+    end
+
+    def add_cycle_page(site, page, cycle)
+      site.pages << ProductCycleJsonPage.new(site, page, cycle)
     end
 
     def add_all_products_page(site, products)
@@ -96,11 +98,7 @@ module ApiV1
     def add_category_pages(site, products)
       pages_by_category = {}
 
-      products.each do |product|
-        category = product.data['category'] || 'unknown'
-        add_to_map(pages_by_category, category, product)
-      end
-
+      products.each { |product| add_to_map(pages_by_category, product.data['category'], product) }
       pages_by_category.each do |category, products|
         site.pages << ProductsJsonPage.new(site, "/categories/#{category}", products)
       end
@@ -109,10 +107,7 @@ module ApiV1
     def add_all_categories_page(site, products)
       categories = products.map { |product| product.data['category'] }.uniq.sort
 
-      data = categories.map { |category| {
-        name: category,
-        uri: "#{ApiV1.api_url(site, "/categories/#{category}/")}"
-      }}
+      data = categories.map { |category| { name: category, uri: "#{ApiV1.api_url(site, "/categories/#{category}/")}" }}
       meta = { total: categories.size() }
 
       site.pages << JsonPage.new(site, '/categories/', data, meta)
@@ -133,10 +128,7 @@ module ApiV1
     def add_all_tags_page(site, products)
       tags = products.flat_map { |product| product.data['tags'] }.uniq.sort
 
-      data = tags.map { |tag| {
-        name: tag,
-        uri: "#{ApiV1.api_url(site, "/tags/#{tag}/")}"
-      }}
+      data = tags.map { |tag| { name: tag, uri: "#{ApiV1.api_url(site, "/tags/#{tag}/")}" }}
       meta = { total: tags.size() }
 
       site.pages << JsonPage.new(site, '/tags/', data, meta)
